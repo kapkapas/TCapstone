@@ -107,9 +107,9 @@ begin
   if csmV9 in FMode then
     dMode := dMode or CS_MODE_V9;
   if csmBigEndian in FMode then
-    dMode := dMode or CS_MODE_BIG_ENDIAN;
+    dMode := dMode or integer(CS_MODE_BIG_ENDIAN);
 
-  Result := cs_open(Ord(FArch), dMode, @h);
+  Result := cs_open(Ord(FArch), Cardinal(dMode), @h);
   if Result = CS_ERR_OK then begin
     FHandle := h;
     cs_option(FHandle, CS_OPT_SKIPDATA, Ord(CS_OPT_ON));
