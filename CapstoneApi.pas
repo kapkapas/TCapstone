@@ -13,7 +13,7 @@ interface
 
 uses
   SysUtils, CapstoneX86, CapstoneArm64, CapstoneArm, CapstoneMips,
-  CapstonePpc, CapstoneSparc, CapstoneSystemZ, CapstoneXCore;
+  CapstonePpc, CapstoneSparc, CapstoneSystemZ, CapstoneXCore {$IFDEF CAPSTONE_DYNAMIC},dynlibs{$ENDIF};
 
 const
 {$ifdef Linux}
@@ -171,8 +171,14 @@ type
  NOTE: if you only care about returned value, but not major and minor values,
  set both @major & @minor arguments to NULL.
 }
+{$IFNDEF CAPSTONE_DYNAMIC}
 function cs_version(var major, minor: integer): Cardinal; cdecl external {$IFNDEF CAPSTONE_STATIC}LIB_FILE{$ENDIF};
-
+{$ELSE}
+type
+TAPIcs_version = function (var major, minor: integer): Cardinal; cdecl;
+var
+  cs_version: TAPIcs_version;
+{$ENDIF}
 {
  This API can be used to either ask for archs supported by this library,
  or check to see if the library was compile with 'diet' option (or called
@@ -186,7 +192,13 @@ function cs_version(var major, minor: integer): Cardinal; cdecl external {$IFNDE
 
  @return True if this library supports the given arch, or in 'diet' mode.
 }
+{$IFNDEF CAPSTONE_DYNAMIC}
 function cs_support(query: integer): boolean; cdecl external {$IFNDEF CAPSTONE_STATIC}LIB_FILE{$ENDIF};
+{$ELSE}
+type TAPIcs_support = function (query: integer): boolean; cdecl;
+var
+  cs_support: TAPIcs_support;
+{$ENDIF}
 
 {
  Initialize CS handle: this must be done before any usage of CS.
@@ -198,8 +210,13 @@ function cs_support(query: integer): boolean; cdecl external {$IFNDEF CAPSTONE_S
  @return CS_ERR_OK on success, or other value on failure (refer to cs_err enum
  for detailed error).
 }
+{$IFNDEF CAPSTONE_DYNAMIC}
 function cs_open(arch: Cardinal; mode: Cardinal; handle: Pcsh): cs_err; cdecl external {$IFNDEF CAPSTONE_STATIC}LIB_FILE{$ENDIF};
-
+{$ELSE}
+type TAPIcs_open = function (arch: Cardinal; mode: Cardinal; handle: Pcsh): cs_err; cdecl;
+var
+  cs_open: TAPIcs_open;
+{$ENDIF}
 {
  Close CS handle: MUST do to release the handle when it is not used anymore.
  NOTE: this must be only called when there is no longer usage of Capstone,
@@ -214,7 +231,13 @@ function cs_open(arch: Cardinal; mode: Cardinal; handle: Pcsh): cs_err; cdecl ex
  @return CS_ERR_OK on success, or other value on failure (refer to cs_err enum
  for detailed error).
 }
+{$IFNDEF CAPSTONE_DYNAMIC}
 function cs_close(var handle: csh): cs_err; cdecl; external {$IFNDEF CAPSTONE_STATIC}LIB_FILE{$ENDIF};
+{$ELSE}
+type TAPIcs_close = function (var handle: csh): cs_err; cdecl;
+var
+  cs_close: TAPIcs_close;
+{$ENDIF}
 
 {
  Set option for disassembling engine at runtime
@@ -230,7 +253,13 @@ function cs_close(var handle: csh): cs_err; cdecl; external {$IFNDEF CAPSTONE_ST
  so that cs_option(handle, CS_OPT_MEM, value) can (i.e must) be called
  even before cs_open()
 }
+{$IFNDEF CAPSTONE_DYNAMIC}
 function cs_option(handle: csh; _type: cs_opt_type; value: NativeUInt): cs_err; cdecl external {$IFNDEF CAPSTONE_STATIC}LIB_FILE{$ENDIF};
+{$ELSE}
+type TAPIcs_option = function (handle: csh; _type: cs_opt_type; value: NativeUInt): cs_err; cdecl;
+var
+  cs_option: TAPIcs_option;
+{$ENDIF}
 
 {
  Report the last error number when some API function fail.
@@ -240,8 +269,13 @@ function cs_option(handle: csh; _type: cs_opt_type; value: NativeUInt): cs_err; 
 
  @return: error code of cs_err enum type (CS_ERR_*, see above)
 }
+{$IFNDEF CAPSTONE_DYNAMIC}
 function cs_errno(handle: csh): cs_err; cdecl external {$IFNDEF CAPSTONE_STATIC}LIB_FILE{$ENDIF};
-
+{$ELSE}
+type TAPIcs_errno = function (handle: csh): cs_err; cdecl;
+var
+  cs_errno: TAPIcs_errno;
+{$ENDIF}
 {
  Return a string describing given error code.
 
@@ -250,7 +284,13 @@ function cs_errno(handle: csh): cs_err; cdecl external {$IFNDEF CAPSTONE_STATIC}
  @return: returns a pointer to a string that describes the error code
   passed in the argument @code
 }
+{$IFNDEF CAPSTONE_DYNAMIC}
 function cs_strerror(code: cs_err): PansiChar; cdecl external {$IFNDEF CAPSTONE_STATIC}LIB_FILE{$ENDIF};
+{$ELSE}
+type TAPIcs_strerror = function (code: cs_err): PansiChar; cdecl;
+var
+  cs_strerror: TAPIcs_strerror;
+{$ENDIF}
 
 {
  Disassemble binary code, given the code buffer, size, address and number
@@ -285,11 +325,21 @@ function cs_strerror(code: cs_err): PansiChar; cdecl external {$IFNDEF CAPSTONE_
 
  On failure, call cs_errno() for error code.
 }
+{$IFNDEF CAPSTONE_DYNAMIC}
 function cs_disasm(handle: csh;
   const code: Pointer; size: NativeUInt;
   address: UInt64;
   count: NativeUInt;
   var insn: array of Pcs_insn): NativeUInt; cdecl external {$IFNDEF CAPSTONE_STATIC}LIB_FILE{$ENDIF};
+{$ELSE}
+type TAPIcs_disasm = function (handle: csh;
+  const code: Pointer; size: NativeUInt;
+  address: UInt64;
+  count: NativeUInt;
+  var insn: array of Pcs_insn): NativeUInt; cdecl;
+var
+  cs_disasm: TAPIcs_disasm;
+{$ENDIF}
 
 {
  Free memory allocated by cs_malloc() or cs_disasm() (argument @insn)
@@ -298,7 +348,13 @@ function cs_disasm(handle: csh;
  @count: number of cs_insn structures returned by cs_disasm(), or 1
      to free memory allocated by cs_malloc().
 }
+{$IFNDEF CAPSTONE_DYNAMIC}
 procedure cs_free(insn: Pcs_insn; count: NativeUInt); cdecl external {$IFNDEF CAPSTONE_STATIC}LIB_FILE{$ENDIF};
+{$ELSE}
+type TAPIcs_free = procedure (insn: Pcs_insn; count: NativeUInt); cdecl;
+var
+  cs_free: TAPIcs_free;
+{$ENDIF}
 
 {
  Allocate memory for 1 instruction to be used by cs_disasm_iter().
@@ -308,7 +364,13 @@ procedure cs_free(insn: Pcs_insn; count: NativeUInt); cdecl external {$IFNDEF CA
  NOTE: when no longer in use, you can reclaim the memory allocated for
  this instruction with cs_free(insn, 1)
 }
+{$IFNDEF CAPSTONE_DYNAMIC}
 function cs_malloc(handle: csh): Pcs_insn; cdecl external {$IFNDEF CAPSTONE_STATIC}LIB_FILE{$ENDIF};
+{$ELSE}
+type TAPIcs_malloc = function (handle: csh): Pcs_insn; cdecl;
+var
+  cs_malloc: TAPIcs_malloc;
+{$ENDIF}
 
 {
  Fast API to disassemble binary code, given the code buffer, size, address
@@ -345,9 +407,17 @@ function cs_malloc(handle: csh): Pcs_insn; cdecl external {$IFNDEF CAPSTONE_STAT
 
  On failure, call cs_errno() for error code.
 }
+{$IFNDEF CAPSTONE_DYNAMIC}
 function cs_disasm_iter(handle: csh;
   var code: Pointer; var size: NativeUInt;
   var address: UInt64; insn: Pcs_insn): boolean; cdecl external {$IFNDEF CAPSTONE_STATIC}LIB_FILE{$ENDIF};
+{$ELSE}
+type TAPIcs_disasm_iter = function (handle: csh;
+  var code: Pointer; var size: NativeUInt;
+  var address: UInt64; insn: Pcs_insn): boolean; cdecl;
+var
+  cs_disasm_iter: TAPIcs_disasm_iter;
+{$ENDIF}
 
 {
  Return friendly name of regiser in a string.
@@ -362,7 +432,13 @@ function cs_disasm_iter(handle: csh;
 
  @return: string name of the register, or NULL if @reg_id is invalid.
 }
+{$IFNDEF CAPSTONE_DYNAMIC}
 function cs_reg_name(handle: csh; reg_id: Cardinal): PAnsiChar; cdecl external {$IFNDEF CAPSTONE_STATIC}LIB_FILE{$ENDIF};
+{$ELSE}
+type TAPIcs_reg_name = function (handle: csh; reg_id: Cardinal): PAnsiChar; cdecl;
+var
+  cs_reg_name: TAPIcs_reg_name;
+{$ENDIF}
 
 {
  Return friendly name of an instruction in a string.
@@ -376,7 +452,13 @@ function cs_reg_name(handle: csh; reg_id: Cardinal): PAnsiChar; cdecl external {
 
  @return: string name of the instruction, or NULL if @insn_id is invalid.
 }
+{$IFNDEF CAPSTONE_DYNAMIC}
 function cs_insn_name(handle: csh; insn_id: Cardinal): PAnsiChar; cdecl external {$IFNDEF CAPSTONE_STATIC}LIB_FILE{$ENDIF};
+{$ELSE}
+type TAPIcs_insn_name = function (handle: csh; insn_id: Cardinal): PAnsiChar; cdecl;
+var
+  cs_insn_name: TAPIcs_insn_name;
+{$ENDIF}
 
 {
  Return friendly name of a group id (that an instruction can belong to)
@@ -390,7 +472,13 @@ function cs_insn_name(handle: csh; insn_id: Cardinal): PAnsiChar; cdecl external
 
  @return: string name of the group, or NULL if @group_id is invalid.
 }
+{$IFNDEF CAPSTONE_DYNAMIC}
 function cs_group_name(handle: csh; group_id: Cardinal): PAnsiChar; cdecl external {$IFNDEF CAPSTONE_STATIC}LIB_FILE{$ENDIF};
+{$ELSE}
+type TAPIcs_group_name = function (handle: csh; group_id: Cardinal): PAnsiChar; cdecl;
+var
+  cs_group_name: TAPIcs_group_name;
+{$ENDIF}
 
 {
  Check if a disassembled instruction belong to a particular group.
@@ -408,7 +496,13 @@ function cs_group_name(handle: csh; group_id: Cardinal): PAnsiChar; cdecl extern
 
  @return: true if this instruction indeed belongs to aboved group, or false otherwise.
 }
+{$IFNDEF CAPSTONE_DYNAMIC}
 function cs_insn_group(handle: csh; const insn: Pcs_insn; group_id: Cardinal): boolean; cdecl external {$IFNDEF CAPSTONE_STATIC}LIB_FILE{$ENDIF};
+{$ELSE}
+type TAPIcs_insn_group = function (handle: csh; const insn: Pcs_insn; group_id: Cardinal): boolean; cdecl;
+var
+  cs_insn_group: TAPIcs_insn_group;
+{$ENDIF}
 
 {
  Check if a disassembled instruction IMPLICITLY used a particular register.
@@ -425,7 +519,13 @@ function cs_insn_group(handle: csh; const insn: Pcs_insn; group_id: Cardinal): b
 
  @return: true if this instruction indeed implicitly used aboved register, or false otherwise.
 }
+{$IFNDEF CAPSTONE_DYNAMIC}
 function cs_reg_read(handle: csh; const insn: Pcs_insn; reg_id: Cardinal): boolean; cdecl external {$IFNDEF CAPSTONE_STATIC}LIB_FILE{$ENDIF};
+{$ELSE}
+type TAPIcs_reg_read = function (handle: csh; const insn: Pcs_insn; reg_id: Cardinal): boolean; cdecl;
+var
+  cs_reg_read: TAPIcs_reg_read;
+{$ENDIF}
 
 {
  Check if a disassembled instruction IMPLICITLY modified a particular register.
@@ -442,7 +542,13 @@ function cs_reg_read(handle: csh; const insn: Pcs_insn; reg_id: Cardinal): boole
 
  @return: true if this instruction indeed implicitly modified aboved register, or false otherwise.
 }
+{$IFNDEF CAPSTONE_DYNAMIC}
 function cs_reg_write(handle: csh; const insn: Pcs_insn; reg_id: Cardinal): boolean; cdecl external {$IFNDEF CAPSTONE_STATIC}LIB_FILE{$ENDIF};
+{$ELSE}
+type TAPIcs_reg_write = function (handle: csh; const insn: Pcs_insn; reg_id: Cardinal): boolean; cdecl;
+var
+  cs_reg_write: TAPIcs_reg_write;
+{$ENDIF}
 
 {
  Count the number of operands of a given type.
@@ -457,7 +563,13 @@ function cs_reg_write(handle: csh; const insn: Pcs_insn; reg_id: Cardinal): bool
  @return: number of operands of given type @op_type in instruction @insn,
  or -1 on failure.
 }
+{$IFNDEF CAPSTONE_DYNAMIC}
 function cs_op_count(handle: csh; const insn: Pcs_insn; op_type: Cardinal): integer; cdecl external {$IFNDEF CAPSTONE_STATIC}LIB_FILE{$ENDIF};
+{$ELSE}
+type TAPIcs_op_count = function (handle: csh; const insn: Pcs_insn; op_type: Cardinal): integer; cdecl;
+var
+  cs_op_count: TAPIcs_op_count;
+{$ENDIF}
 
 {
  Retrieve the position of operand of given type in <arch>.operands[] array.
@@ -475,7 +587,18 @@ function cs_op_count(handle: csh; const insn: Pcs_insn; op_type: Cardinal): inte
  @return: index of operand of given type @op_type in <arch>.operands[] array
  in instruction @insn, or -1 on failure.
 }
+{$IFNDEF CAPSTONE_DYNAMIC}
 function cs_op_index(handle: csh; const insn: Pcs_insn; op_type: Cardinal; position: Cardinal): integer; cdecl external {$IFNDEF CAPSTONE_STATIC}LIB_FILE{$ENDIF};
+{$ELSE}
+type TAPIcs_op_index = function (handle: csh; const insn: Pcs_insn; op_type: Cardinal; position: Cardinal): integer; cdecl;
+var
+  cs_op_index: TAPIcs_op_index;
+{$ENDIF}
+
+{$IFDEF CAPSTONE_DYNAMIC}
+function  InitializeCapstoneDynamic(const aLibFile: string=LIB_FILE): Boolean;
+procedure FinalizeCapstoneDynamic;
+{$ENDIF}
 
 // Calculate relative address for X86-64, given cs_insn structure
 function X86_REL_ADDR(insn: cs_insn): UInt64;
@@ -486,5 +609,77 @@ function X86_REL_ADDR(insn: cs_insn): UInt64;
 begin
 	Result := insn.address + insn.size + insn.detail^.x86.disp;
 end;
+
+{$IFDEF CAPSTONE_DYNAMIC}
+var
+  gCapstoneLibHandle: TLibHandle=NilHandle;
+
+function InitializeCapstoneDynamic(const aLibFile: string=LIB_FILE): Boolean;
+var
+  lFailedFunctions: integer;
+  procedure InitFunction(const aFunctionName: string; var aPointer);
+  begin
+    Pointer(aPointer):=GetProcAddress(gCapstoneLibHandle,aFunctionName);
+    if Pointer(aPointer)=nil then begin
+      inc(lFailedFunctions);
+    end;
+  end;
+begin
+  if gCapstoneLibHandle<>NilHandle then begin
+    // Already initialized
+    Result:=true;
+    exit;
+  end;
+  Result:=false;
+  gCapstoneLibHandle:=SafeLoadLibrary(aLibFile);
+  if gCapstoneLibHandle=NilHandle then exit;
+  lFailedFunctions:=0;
+  InitFunction('cs_version',cs_version);
+  InitFunction('cs_support',cs_support);
+  InitFunction('cs_open',cs_open);
+  InitFunction('cs_close',cs_close);
+  InitFunction('cs_option',cs_option);
+  InitFunction('cs_errno',cs_errno);
+  InitFunction('cs_strerror',cs_strerror);
+  InitFunction('cs_disasm',cs_disasm);
+  InitFunction('cs_free',cs_free);
+  InitFunction('cs_malloc',cs_malloc);
+  InitFunction('cs_disasm_iter',cs_disasm_iter);
+  InitFunction('cs_reg_name',cs_reg_name);
+  InitFunction('cs_insn_name',cs_insn_name);
+  InitFunction('cs_group_name',cs_group_name);
+  InitFunction('cs_insn_group',cs_insn_group);
+  InitFunction('cs_reg_read',cs_reg_read);
+  InitFunction('cs_reg_write',cs_reg_write);
+  InitFunction('cs_op_count',cs_op_count);
+  InitFunction('cs_op_index',cs_op_index);
+  Result:=lFailedFunctions=0;
+end;
+
+procedure FinalizeCapstoneDynamic;
+begin
+  FreeLibrary(gCapstoneLibHandle);
+  gCapstoneLibHandle:=NilHandle;
+  cs_version:=nil;
+  cs_support:=nil;
+  cs_open:=nil;
+  cs_close:=nil;
+  cs_option:=nil;
+  cs_errno:=nil;
+  cs_strerror:=nil;
+  cs_disasm:=nil;
+  cs_free:=nil;
+  cs_malloc:=nil;
+  cs_disasm_iter:=nil;
+  cs_reg_name:=nil;
+  cs_insn_name:=nil;
+  cs_group_name:=nil;
+  cs_insn_group:=nil;
+  cs_reg_read:=nil;
+  cs_reg_write:=nil;
+  cs_op_count:=nil;
+  cs_op_index:=nil;
+end;
+{$ENDIF}
 
 end.
