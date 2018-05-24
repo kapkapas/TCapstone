@@ -680,6 +680,13 @@ begin
   cs_op_count:=nil;
   cs_op_index:=nil;
 end;
+
+initialization
+  InitializeCapstoneDynamic;
+
+finalization
+  FinalizeCapstoneDynamic;
+
 {$ENDIF}
 
 end.
